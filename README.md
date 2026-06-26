@@ -124,6 +124,22 @@ npm run build
 npm run preview
 ```
 
+## Docker Setup
+
+Run the full stack with Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+Services:
+
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:8000`
+- Backend docs: `http://localhost:8000/docs`
+
+The frontend container serves the Vite production build through Nginx and proxies `/api` requests to the backend container. The backend stores SQLite data in the `webscope-data` Docker volume.
+
 ## Environment Variables
 
 Backend:

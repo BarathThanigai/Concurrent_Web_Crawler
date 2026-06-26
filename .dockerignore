@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+.git/
+.github/
+.agents/
+.codex/
+crawler.db
+*.db
+*.db-journal
+*.log
+*.err
+frontend/node_modules/
+frontend/dist/

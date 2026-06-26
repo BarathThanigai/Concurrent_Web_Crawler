@@ -1,4 +1,5 @@
 import json
+import os
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -15,7 +16,7 @@ from models import (
     StatsResponse,
 )
 
-DATABASE_PATH = Path(__file__).with_name("crawler.db")
+DATABASE_PATH = Path(os.getenv("DATABASE_PATH", Path(__file__).with_name("crawler.db")))
 
 
 class Database:
