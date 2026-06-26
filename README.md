@@ -285,28 +285,9 @@ Returns graph-ready crawl data with nodes and edges:
 
 The frontend uses React Flow for zoom, pan, fit view, minimap, and click-to-inspect page details. Graph nodes are styled by audit state: normal, slow, SEO issue, or failed.
 
-## Screenshots
-
-Add screenshots here after running or deploying:
-
-- WebScope overview dashboard
-- Pages table
-- Broken links tab
-- SEO issues tab
-- Performance tab
-- Site Graph tab
-- FastAPI docs
-
 ## Roadmap
 
 - Live crawl progress and streaming job status
 - Dockerfile and Docker Compose for local full-stack startup
 - Persistent production database option such as Postgres
 - Scheduled recurring audits and historical report comparison
-
-## Resume Bullets
-
-- Built WebScope, a full-stack website audit platform using FastAPI, React, Vite, SQLite, asyncio, aiohttp, BeautifulSoup, and React Flow.
-- Implemented concurrent BFS crawling with robots.txt compliance, bounded crawl limits, crawl job tracking, timeout handling, CSV exports, and graph-ready crawl topology.
-- Added SEO metadata extraction, broken link detection, slow page analysis, health scoring, report endpoints, and interactive site graph visualization.
-- Designed a responsive React dashboard for audit summaries, broken links, SEO issues, performance reports, site graph exploration, and deployment-ready portfolio presentation.
