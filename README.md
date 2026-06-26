@@ -8,6 +8,8 @@ It started as a concurrent web crawler and now includes a FastAPI audit backend,
 
 - Concurrent BFS-style crawling with `asyncio` and `aiohttp`
 - `robots.txt` checking before page fetches
+- WebScopeBot User-Agent, polite crawl delay, retry/backoff for temporary failures, and sitemap.xml discovery
+- Failure reason classification for robots blocks, timeouts, connection errors, rate limits, and HTTP errors
 - Crawl jobs with persistent IDs
 - Safety limits: `max_depth <= 3`, `max_concurrency <= 20`, `max_pages <= 200`
 - Timeout handling and friendly blocked-site messages
@@ -39,6 +41,7 @@ https://quotes.toscrape.com
 ```
 
 Avoid crawling large production sites without permission.
+WebScope audits publicly crawlable pages only and does not bypass `robots.txt`, anti-bot protections, authentication, or JavaScript-only rendering.
 
 ## Tech Stack
 

@@ -11,6 +11,9 @@ const emptyReport = {
   total_links: 0,
   broken_links_count: 0,
   slow_pages_count: 0,
+  skipped_by_robots_count: 0,
+  timeout_count: 0,
+  failed_by_reason: {},
   missing_titles_count: 0,
   missing_descriptions_count: 0,
   missing_h1_count: 0,
@@ -57,6 +60,8 @@ function App() {
     () => [
       { label: "Broken links", value: report.broken_links_count },
       { label: "Slow pages", value: report.slow_pages_count },
+      { label: "Skipped by robots", value: report.skipped_by_robots_count },
+      { label: "Timeouts", value: report.timeout_count },
       { label: "Missing titles", value: report.missing_titles_count },
       { label: "Missing descriptions", value: report.missing_descriptions_count },
       { label: "Missing H1 tags", value: report.missing_h1_count },
@@ -95,7 +100,7 @@ function App() {
     event.preventDefault();
     setLoading(true);
     setError("");
-    setMessage("Running audit. Some websites may block crawlers or require JavaScript rendering.");
+    setMessage("Running audit. WebScope audits publicly crawlable pages only and respects robots.txt.");
     try {
       const result = await request("/crawl", {
         method: "POST",
@@ -149,7 +154,7 @@ function App() {
           <label>Max pages<input type="number" min="1" max="200" value={maxPages} onChange={(event) => setMaxPages(event.target.value)} /></label>
           <button className="primary" disabled={loading}>{loading ? "Auditing..." : "Start Audit"}</button>
         </form>
-        <p className="crawler-note">Some websites may block crawlers due to robots.txt, anti-bot rules, rate limits, or JavaScript-heavy pages.</p>
+        <p className="crawler-note">WebScope audits publicly crawlable pages only. Some websites may block crawlers due to robots.txt, anti-bot rules, rate limits, or JavaScript-heavy pages.</p>
       </section>
 
       <SummaryCards summary={summary} report={report} />
@@ -184,8 +189,9 @@ function SummaryCards({ summary, report }) {
       <Metric label="Pages crawled" value={summary?.crawled_pages ?? report.total_pages} />
       <Metric label="Broken links" value={report.broken_links_count} tone="bad" />
       <Metric label="Slow pages" value={report.slow_pages_count} tone="warn" />
+      <Metric label="Skipped by robots" value={report.skipped_by_robots_count} tone="warn" />
+      <Metric label="Timeouts" value={report.timeout_count} tone="bad" />
       <Metric label="SEO issues" value={report.seo_issues_count} tone="warn" />
-      <Metric label="Total links" value={summary?.total_links_found ?? report.total_links} />
       <Metric label="Avg response" value={formatMs(report.average_response_time_ms)} />
     </section>
   );
@@ -204,6 +210,8 @@ function Overview({ report, job, topIssues }) {
           <ReportRow label="Total pages" value={report.total_pages} />
           <ReportRow label="Total links" value={report.total_links} />
           <ReportRow label="Broken links" value={report.broken_links_count} />
+          <ReportRow label="Skipped by robots" value={report.skipped_by_robots_count} />
+          <ReportRow label="Timeouts" value={report.timeout_count} />
           <ReportRow label="Missing titles" value={report.missing_titles_count} />
           <ReportRow label="Missing descriptions" value={report.missing_descriptions_count} />
           <ReportRow label="Missing H1 tags" value={report.missing_h1_count} />
@@ -220,6 +228,14 @@ function Overview({ report, job, topIssues }) {
             <span className="chip good">No major issues found</span>
           ) : topIssues.map((issue) => (
             <span className="chip" key={issue.label}>{issue.label}: {issue.value}</span>
+          ))}
+        </div>
+      </div>
+      <div className="panel">
+        <div className="section-header"><h2>Failed by Reason</h2></div>
+        <div className="report-list">
+          {Object.entries(report.failed_by_reason || {}).map(([reason, count]) => (
+            <ReportRow key={reason} label={reason.replaceAll("_", " ")} value={count} />
           ))}
         </div>
       </div>
@@ -277,12 +293,13 @@ function BrokenLinksTable({ links }) {
   return (
     <section className="panel">
       <div className="section-header"><h2>Broken Links</h2><span className="muted">{links.length} issues</span></div>
-      <TableShell empty="No broken links found for the selected crawl." columns={["Broken URL", "Found on", "Status", "Error"]}>
+      <TableShell empty="No broken links found for the selected crawl." columns={["Broken URL", "Found on", "Status", "Reason", "Error"]}>
         {links.map((link) => (
           <tr key={`${link.job_id}-${link.url}`}>
             <td className="url-cell" title={link.url}>{link.url}</td>
             <td className="url-cell" title={link.source_url || ""}>{link.source_url || "Seed URL"}</td>
             <td>{link.status_code ?? "N/A"}</td>
+            <td>{(link.error_type || "http_error").replaceAll("_", " ")}</td>
             <td>{link.error || "HTTP error"}</td>
           </tr>
         ))}

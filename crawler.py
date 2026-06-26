@@ -1,6 +1,7 @@
 import asyncio
 import time
 import urllib.robotparser
+import xml.etree.ElementTree as ET
 from collections import deque
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -32,6 +33,7 @@ class CrawledPage:
     response_time_ms: float
     success: bool
     crawled_at: str
+    error_type: str | None = None
     error: str | None = None
 
 
@@ -44,6 +46,8 @@ class ConcurrentCrawler:
         max_concurrency: int,
         max_pages: int,
         timeout_seconds: int = 15,
+        crawl_delay_seconds: float = 0.5,
+        max_retries: int = 2,
     ) -> None:
         self.job_id = job_id
         self.seed_url = self._normalize_url(seed_url)
@@ -52,7 +56,11 @@ class ConcurrentCrawler:
         self.max_pages = max_pages
         self.timeout = aiohttp.ClientTimeout(total=timeout_seconds)
         self.seed_host = urlparse(self.seed_url).netloc.lower()
-        self.user_agent = "WebScopeAuditBot/1.0"
+        self.user_agent = "WebScopeBot/1.1 (+https://github.com/webscope-audit)"
+        self.crawl_delay_seconds = crawl_delay_seconds
+        self.max_retries = max_retries
+        self._request_lock = asyncio.Lock()
+        self._last_request_at = 0.0
 
         if not self.seed_host:
             raise ValueError("seed_url must be an absolute URL")
@@ -66,6 +74,11 @@ class ConcurrentCrawler:
         headers = {"User-Agent": self.user_agent}
         async with aiohttp.ClientSession(timeout=self.timeout, headers=headers) as session:
             robots = await self._load_robots_parser(session)
+            self.crawl_delay_seconds = robots.crawl_delay(self.user_agent) or self.crawl_delay_seconds
+            for sitemap_url in await self._discover_sitemap_urls(session, robots):
+                if sitemap_url not in seen:
+                    seen.add(sitemap_url)
+                    queue.append((sitemap_url, 0, None))
 
             while queue and len(results) < self.max_pages:
                 current_depth = queue[0][1]
@@ -81,9 +94,7 @@ class ConcurrentCrawler:
 
                 pages = await asyncio.gather(
                     *(
-                        self._fetch_page(session, semaphore, robots, url, depth)
-                        if source_url is None
-                        else self._fetch_page(session, semaphore, robots, url, depth, source_url)
+                        self._fetch_page(session, semaphore, robots, url, depth, source_url)
                         for url, depth, source_url in batch
                     )
                 )
@@ -111,43 +122,83 @@ class ConcurrentCrawler:
     ) -> CrawledPage:
         async with semaphore:
             if not robots.can_fetch(self.user_agent, url):
-                return self._failed_page(url, depth, source_url, "Blocked by robots.txt")
+                return self._failed_page(
+                    url,
+                    depth,
+                    source_url,
+                    "blocked_by_robots",
+                    "Skipped because robots.txt disallows crawling this URL",
+                )
 
             started_at = time.perf_counter()
-            try:
-                async with session.get(url, allow_redirects=True) as response:
-                    content_type = response.headers.get("content-type", "")
-                    body = await response.text(errors="ignore") if "text/html" in content_type else ""
-                    elapsed_ms = (time.perf_counter() - started_at) * 1000
-                    metadata = self._parse_html(body, str(response.url))
+            for attempt in range(self.max_retries + 1):
+                await self._respect_crawl_delay()
+                started_at = time.perf_counter()
+                try:
+                    async with session.get(url, allow_redirects=True) as response:
+                        content_type = response.headers.get("content-type", "")
+                        body = (
+                            await response.text(errors="ignore")
+                            if "text/html" in content_type
+                            else ""
+                        )
+                        elapsed_ms = (time.perf_counter() - started_at) * 1000
 
-                    return CrawledPage(
-                        job_id=self.job_id,
-                        url=url,
-                        source_url=source_url,
-                        title=metadata["title"],
-                        meta_description=metadata["meta_description"],
-                        h1_tags=metadata["h1_tags"],
-                        canonical_url=metadata["canonical_url"],
-                        word_count=metadata["word_count"],
-                        page_size_kb=round(len(body.encode("utf-8")) / 1024, 2),
-                        missing_title=not metadata["title"],
-                        missing_description=not metadata["meta_description"],
-                        missing_h1=len(metadata["h1_tags"]) == 0,
-                        is_slow=elapsed_ms > 1000,
-                        status_code=response.status,
-                        depth=depth,
-                        links=metadata["links"],
-                        response_time_ms=round(elapsed_ms, 2),
-                        success=response.status < 400,
-                        crawled_at=self._utc_now(),
+                        if self._should_retry(response.status, attempt):
+                            await asyncio.sleep(2**attempt)
+                            continue
+
+                        metadata = self._parse_html(body, str(response.url))
+                        error_type = self._classify_http_status(response.status)
+
+                        return CrawledPage(
+                            job_id=self.job_id,
+                            url=url,
+                            source_url=source_url,
+                            title=metadata["title"],
+                            meta_description=metadata["meta_description"],
+                            h1_tags=metadata["h1_tags"],
+                            canonical_url=metadata["canonical_url"],
+                            word_count=metadata["word_count"],
+                            page_size_kb=round(len(body.encode("utf-8")) / 1024, 2),
+                            missing_title=not metadata["title"],
+                            missing_description=not metadata["meta_description"],
+                            missing_h1=len(metadata["h1_tags"]) == 0,
+                            is_slow=elapsed_ms > 1000,
+                            status_code=response.status,
+                            depth=depth,
+                            links=metadata["links"],
+                            response_time_ms=round(elapsed_ms, 2),
+                            success=response.status < 400,
+                            crawled_at=self._utc_now(),
+                            error_type=error_type,
+                            error=self._http_error_message(response.status) if error_type else None,
+                        )
+                except asyncio.TimeoutError:
+                    elapsed_ms = (time.perf_counter() - started_at) * 1000
+                    if attempt < self.max_retries:
+                        await asyncio.sleep(2**attempt)
+                        continue
+                    return self._failed_page(
+                        url, depth, source_url, "timeout", "Request timed out", elapsed_ms
                     )
-            except asyncio.TimeoutError:
-                elapsed_ms = (time.perf_counter() - started_at) * 1000
-                return self._failed_page(url, depth, source_url, "Request timed out", elapsed_ms)
-            except aiohttp.ClientError as exc:
-                elapsed_ms = (time.perf_counter() - started_at) * 1000
-                return self._failed_page(url, depth, source_url, str(exc), elapsed_ms)
+                except aiohttp.ClientError as exc:
+                    elapsed_ms = (time.perf_counter() - started_at) * 1000
+                    if attempt < self.max_retries:
+                        await asyncio.sleep(2**attempt)
+                        continue
+                    return self._failed_page(
+                        url, depth, source_url, "connection_error", str(exc), elapsed_ms
+                    )
+
+            return self._failed_page(
+                url,
+                depth,
+                source_url,
+                "connection_error",
+                "Request failed after retries",
+                (time.perf_counter() - started_at) * 1000,
+            )
 
     async def _load_robots_parser(
         self, session: aiohttp.ClientSession
@@ -167,11 +218,74 @@ class ConcurrentCrawler:
 
         return parser
 
+    async def _discover_sitemap_urls(
+        self,
+        session: aiohttp.ClientSession,
+        robots: urllib.robotparser.RobotFileParser,
+    ) -> list[str]:
+        sitemap_url = f"{urlparse(self.seed_url).scheme}://{self.seed_host}/sitemap.xml"
+        if not robots.can_fetch(self.user_agent, sitemap_url):
+            return []
+
+        try:
+            await self._respect_crawl_delay()
+            async with session.get(sitemap_url, allow_redirects=True) as response:
+                if response.status >= 400:
+                    return []
+                xml_text = await response.text(errors="ignore")
+        except (aiohttp.ClientError, asyncio.TimeoutError, ET.ParseError):
+            return []
+
+        urls: list[str] = []
+        try:
+            root = ET.fromstring(xml_text)
+        except ET.ParseError:
+            return []
+
+        for element in root.iter():
+            if not element.tag.endswith("loc") or not element.text:
+                continue
+            normalized = self._safe_normalize(element.text.strip())
+            if (
+                normalized
+                and self._is_internal_url(normalized)
+                and robots.can_fetch(self.user_agent, normalized)
+            ):
+                urls.append(normalized)
+
+        return sorted(set(urls))
+
+    async def _respect_crawl_delay(self) -> None:
+        async with self._request_lock:
+            elapsed = time.perf_counter() - self._last_request_at
+            wait_time = self.crawl_delay_seconds - elapsed
+            if wait_time > 0:
+                await asyncio.sleep(wait_time)
+            self._last_request_at = time.perf_counter()
+
+    def _should_retry(self, status_code: int, attempt: int) -> bool:
+        return attempt < self.max_retries and status_code in {408, 429, 500, 502, 503, 504}
+
+    @staticmethod
+    def _classify_http_status(status_code: int) -> str | None:
+        if status_code == 429:
+            return "rate_limited"
+        if status_code >= 400:
+            return "http_error"
+        return None
+
+    @staticmethod
+    def _http_error_message(status_code: int) -> str:
+        if status_code == 429:
+            return "Rate limited by the server"
+        return f"HTTP error {status_code}"
+
     def _failed_page(
         self,
         url: str,
         depth: int,
         source_url: str | None,
+        error_type: str,
         error: str,
         response_time_ms: float = 0.0,
     ) -> CrawledPage:
@@ -195,6 +309,7 @@ class ConcurrentCrawler:
             response_time_ms=round(response_time_ms, 2),
             success=False,
             crawled_at=self._utc_now(),
+            error_type=error_type,
             error=error or "Request failed",
         )
 
@@ -267,6 +382,10 @@ class ConcurrentCrawler:
             return cls._normalize_url(url)
         except ValueError:
             return None
+
+    def _is_internal_url(self, url: str) -> bool:
+        parsed = urlparse(url)
+        return parsed.scheme in {"http", "https"} and parsed.netloc.lower() == self.seed_host
 
     @staticmethod
     def _utc_now() -> str:

@@ -170,6 +170,7 @@ def export_csv(job_id: str, db: Database = Depends(get_database)) -> StreamingRe
             "missing_h1",
             "is_slow",
             "success",
+            "error_type",
             "error",
             "crawled_at",
         ]
@@ -193,6 +194,7 @@ def export_csv(job_id: str, db: Database = Depends(get_database)) -> StreamingRe
                 page.missing_h1,
                 page.is_slow,
                 page.success,
+                page.error_type or "",
                 page.error or "",
                 page.crawled_at,
             ]

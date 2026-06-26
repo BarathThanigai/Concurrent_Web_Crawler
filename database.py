@@ -98,9 +98,9 @@ class Database:
                     job_id, url, source_url, title, meta_description, h1_tags,
                     canonical_url, word_count, page_size_kb, missing_title,
                     missing_description, missing_h1, is_slow, status_code, depth,
-                    links, response_time_ms, success, error, crawled_at
+                    links, response_time_ms, success, error_type, error, crawled_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(job_id, url) DO UPDATE SET
                     source_url = excluded.source_url,
                     title = excluded.title,
@@ -118,6 +118,7 @@ class Database:
                     links = excluded.links,
                     response_time_ms = excluded.response_time_ms,
                     success = excluded.success,
+                    error_type = excluded.error_type,
                     error = excluded.error,
                     crawled_at = excluded.crawled_at
                 """,
@@ -141,6 +142,7 @@ class Database:
                         json.dumps(page.links),
                         page.response_time_ms,
                         int(page.success),
+                        page.error_type,
                         page.error,
                         page.crawled_at,
                     )
@@ -171,7 +173,7 @@ class Database:
                 SELECT job_id, url, source_url, title, meta_description, h1_tags,
                        canonical_url, word_count, page_size_kb, missing_title,
                        missing_description, missing_h1, is_slow, status_code, depth,
-                       links, response_time_ms, success, error, crawled_at
+                       links, response_time_ms, success, error_type, error, crawled_at
                 FROM pages
                 {where}
                 ORDER BY id
@@ -216,6 +218,7 @@ class Database:
                 source_url=page.source_url,
                 url=page.url,
                 status_code=page.status_code,
+                error_type=page.error_type,
                 error=page.error,
                 depth=page.depth,
                 crawled_at=page.crawled_at,
@@ -233,6 +236,7 @@ class Database:
         total_links = sum(len(page.links) for page in pages)
         broken_links_count = len(self.get_broken_links(job_id))
         slow_pages = [page for page in pages if page.is_slow]
+        failed_by_reason = self._failed_by_reason(pages)
         missing_titles = sum(1 for page in pages if page.missing_title)
         missing_descriptions = sum(1 for page in pages if page.missing_description)
         missing_h1 = sum(1 for page in pages if page.missing_h1)
@@ -247,6 +251,9 @@ class Database:
             total_links=total_links,
             broken_links_count=broken_links_count,
             slow_pages_count=len(slow_pages),
+            skipped_by_robots_count=failed_by_reason.get("blocked_by_robots", 0),
+            timeout_count=failed_by_reason.get("timeout", 0),
+            failed_by_reason=failed_by_reason,
             missing_titles_count=missing_titles,
             missing_descriptions_count=missing_descriptions,
             missing_h1_count=missing_h1,
@@ -395,6 +402,7 @@ class Database:
             "missing_description": "INTEGER NOT NULL DEFAULT 0",
             "missing_h1": "INTEGER NOT NULL DEFAULT 0",
             "is_slow": "INTEGER NOT NULL DEFAULT 0",
+            "error_type": "TEXT",
         }
         for name, definition in columns.items():
             if name not in page_columns:
@@ -427,9 +435,26 @@ class Database:
             links=json.loads(row["links"]),
             response_time_ms=row["response_time_ms"],
             success=bool(row["success"]),
+            error_type=row["error_type"],
             error=row["error"],
             crawled_at=row["crawled_at"],
         )
+
+    @staticmethod
+    def _failed_by_reason(pages: list[PageRecord]) -> dict[str, int]:
+        counts = {
+            "blocked_by_robots": 0,
+            "timeout": 0,
+            "connection_error": 0,
+            "rate_limited": 0,
+            "http_error": 0,
+        }
+        for page in pages:
+            if page.success:
+                continue
+            reason = page.error_type or "connection_error"
+            counts[reason] = counts.get(reason, 0) + 1
+        return counts
 
     @staticmethod
     def _health_score(pages: list[PageRecord], broken_links_count: int) -> int:

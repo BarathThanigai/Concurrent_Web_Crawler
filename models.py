@@ -28,6 +28,7 @@ class PageRecord(BaseModel):
     response_time_ms: float
     success: bool
     crawled_at: str
+    error_type: str | None = None
     error: str | None = None
 
 
@@ -66,6 +67,7 @@ class BrokenLinkRecord(BaseModel):
     source_url: str | None = None
     url: str
     status_code: int | None
+    error_type: str | None = None
     error: str | None = None
     depth: int
     crawled_at: str
@@ -83,6 +85,9 @@ class CrawlReportResponse(BaseModel):
     total_links: int
     broken_links_count: int
     slow_pages_count: int
+    skipped_by_robots_count: int
+    timeout_count: int
+    failed_by_reason: dict[str, int]
     missing_titles_count: int
     missing_descriptions_count: int
     missing_h1_count: int
