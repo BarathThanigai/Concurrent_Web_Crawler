@@ -247,21 +247,3 @@ dist
 ```
 
 5. Set `VITE_API_URL` to the deployed backend URL.
-
-## Screenshots
-
-Add screenshots here after running or deploying:
-
-- WebScope overview dashboard
-- Pages table
-- Broken links tab
-- SEO issues tab
-- Performance tab
-- FastAPI docs
-
-## Resume Bullets
-
-- Built WebScope, a full-stack website audit platform using FastAPI, React, Vite, SQLite, asyncio, aiohttp, and BeautifulSoup.
-- Implemented concurrent BFS crawling with robots.txt compliance, bounded crawl limits, crawl job tracking, timeout handling, and CSV exports.
-- Added SEO metadata extraction, broken link detection, slow page analysis, health scoring, and report endpoints for website intelligence workflows.
-- Designed a responsive React dashboard for crawl setup, audit summaries, broken links, SEO issues, performance reports, and deployment-ready portfolio presentation.
