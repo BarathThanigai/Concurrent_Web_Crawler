@@ -1,6 +1,6 @@
 ﻿# WebScope
 
-WebScope v1.1 is a full-stack Website Intelligence & Audit Platform for practical SEO checks, website health checks, broken link detection, performance analysis, site graph visualization, and crawl reporting.
+WebScope v1.1 is a full-stack Website Intelligence & Audit Platform for practical SEO checks, website health checks, link issue detection, performance analysis, site graph visualization, and crawl reporting.
 
 It started as a concurrent web crawler and now includes a FastAPI audit backend, SQLite persistence, and a React + Vite dashboard suitable for a portfolio or internship resume project.
 
@@ -13,7 +13,7 @@ It started as a concurrent web crawler and now includes a FastAPI audit backend,
 - Crawl jobs with persistent IDs
 - Safety limits: `max_depth <= 3`, `max_concurrency <= 20`, `max_pages <= 200`
 - Timeout handling and friendly blocked-site messages
-- Broken link detection for failed internal crawl targets and HTTP error pages
+- Link issue classification for true broken links, crawler-inaccessible URLs, server errors, rate limits, and redirect issues
 - SEO metadata extraction:
   - title
   - meta description
@@ -29,7 +29,7 @@ It started as a concurrent web crawler and now includes a FastAPI audit backend,
 - Crawl report endpoint with health score and top 10 slowest pages
 - Interactive site graph endpoint and React Flow visualization
 - CSV export per crawl job
-- React dashboard with Overview, Pages, Broken Links, SEO Issues, Performance, and Site Graph sections
+- React dashboard with Overview, Pages, Link Issues, SEO Issues, Performance, and Site Graph sections
 
 ## Recommended Test Sites
 

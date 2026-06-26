@@ -170,11 +170,13 @@ def export_csv(job_id: str, db: Database = Depends(get_database)) -> StreamingRe
             "missing_h1",
             "is_slow",
             "success",
+            "link_issue_type",
             "error_type",
             "error",
             "crawled_at",
         ]
     )
+    link_issue_map = {issue.url: issue.link_issue_type for issue in db.get_broken_links(job_id)}
     for page in db.get_pages(job_id=job_id):
         writer.writerow(
             [
@@ -194,6 +196,7 @@ def export_csv(job_id: str, db: Database = Depends(get_database)) -> StreamingRe
                 page.missing_h1,
                 page.is_slow,
                 page.success,
+                link_issue_map.get(page.url, ""),
                 page.error_type or "",
                 page.error or "",
                 page.crawled_at,

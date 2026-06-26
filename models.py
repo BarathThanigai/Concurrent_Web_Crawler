@@ -67,6 +67,7 @@ class BrokenLinkRecord(BaseModel):
     source_url: str | None = None
     url: str
     status_code: int | None
+    link_issue_type: str
     error_type: str | None = None
     error: str | None = None
     depth: int
@@ -84,6 +85,8 @@ class CrawlReportResponse(BaseModel):
     total_pages: int
     total_links: int
     broken_links_count: int
+    link_issues_count: int
+    link_issues_by_type: dict[str, int]
     slow_pages_count: int
     skipped_by_robots_count: int
     timeout_count: int

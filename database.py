@@ -218,13 +218,14 @@ class Database:
                 source_url=page.source_url,
                 url=page.url,
                 status_code=page.status_code,
+                link_issue_type=self._link_issue_type(page),
                 error_type=page.error_type,
                 error=page.error,
                 depth=page.depth,
                 crawled_at=page.crawled_at,
             )
             for page in pages
-            if page.source_url and (not page.success or (page.status_code or 0) >= 400)
+            if page.source_url and self._link_issue_type(page) is not None
         ]
 
     def get_report(self, job_id: str) -> CrawlReportResponse | None:
@@ -234,7 +235,9 @@ class Database:
         pages = self.get_pages(job_id)
         total_pages = len(pages)
         total_links = sum(len(page.links) for page in pages)
-        broken_links_count = len(self.get_broken_links(job_id))
+        link_issues = self.get_broken_links(job_id)
+        link_issues_by_type = self._link_issues_by_type(link_issues)
+        broken_links_count = link_issues_by_type.get("true_broken_link", 0)
         slow_pages = [page for page in pages if page.is_slow]
         failed_by_reason = self._failed_by_reason(pages)
         missing_titles = sum(1 for page in pages if page.missing_title)
@@ -250,6 +253,8 @@ class Database:
             total_pages=total_pages,
             total_links=total_links,
             broken_links_count=broken_links_count,
+            link_issues_count=len(link_issues),
+            link_issues_by_type=link_issues_by_type,
             slow_pages_count=len(slow_pages),
             skipped_by_robots_count=failed_by_reason.get("blocked_by_robots", 0),
             timeout_count=failed_by_reason.get("timeout", 0),
@@ -454,6 +459,33 @@ class Database:
                 continue
             reason = page.error_type or "connection_error"
             counts[reason] = counts.get(reason, 0) + 1
+        return counts
+
+    @staticmethod
+    def _link_issue_type(page: PageRecord) -> str | None:
+        if page.status_code in {404, 410}:
+            return "true_broken_link"
+        if page.status_code in {400, 401, 403}:
+            return "crawler_inaccessible"
+        if page.status_code == 429 or page.error_type == "rate_limited":
+            return "rate_limited"
+        if page.status_code is not None and 500 <= page.status_code <= 599:
+            return "server_error"
+        if page.error_type == "redirect_issue":
+            return "redirect_issue"
+        return None
+
+    @staticmethod
+    def _link_issues_by_type(issues: list[BrokenLinkRecord]) -> dict[str, int]:
+        counts = {
+            "true_broken_link": 0,
+            "crawler_inaccessible": 0,
+            "server_error": 0,
+            "rate_limited": 0,
+            "redirect_issue": 0,
+        }
+        for issue in issues:
+            counts[issue.link_issue_type] = counts.get(issue.link_issue_type, 0) + 1
         return counts
 
     @staticmethod

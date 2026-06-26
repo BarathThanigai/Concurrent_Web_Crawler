@@ -182,6 +182,16 @@ class ConcurrentCrawler:
                     return self._failed_page(
                         url, depth, source_url, "timeout", "Request timed out", elapsed_ms
                     )
+                except aiohttp.TooManyRedirects:
+                    elapsed_ms = (time.perf_counter() - started_at) * 1000
+                    return self._failed_page(
+                        url,
+                        depth,
+                        source_url,
+                        "redirect_issue",
+                        "Redirect loop or too many redirects",
+                        elapsed_ms,
+                    )
                 except aiohttp.ClientError as exc:
                     elapsed_ms = (time.perf_counter() - started_at) * 1000
                     if attempt < self.max_retries:
@@ -270,6 +280,8 @@ class ConcurrentCrawler:
     def _classify_http_status(status_code: int) -> str | None:
         if status_code == 429:
             return "rate_limited"
+        if status_code in {400, 401, 403}:
+            return "crawler_inaccessible"
         if status_code >= 400:
             return "http_error"
         return None
@@ -278,6 +290,11 @@ class ConcurrentCrawler:
     def _http_error_message(status_code: int) -> str:
         if status_code == 429:
             return "Rate limited by the server"
+        if status_code in {400, 401, 403}:
+            return (
+                "Crawler could not access this URL due to request restrictions, "
+                "cookies, authentication, or anti-bot rules"
+            )
         return f"HTTP error {status_code}"
 
     def _failed_page(
