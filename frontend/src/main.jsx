@@ -10,6 +10,8 @@ const emptyReport = {
   total_pages: 0,
   total_links: 0,
   broken_links_count: 0,
+  link_issues_count: 0,
+  link_issues_by_type: {},
   slow_pages_count: 0,
   skipped_by_robots_count: 0,
   timeout_count: 0,
@@ -41,7 +43,7 @@ function App() {
   const [summary, setSummary] = useState(null);
   const [job, setJob] = useState(null);
   const [report, setReport] = useState(emptyReport);
-  const [brokenLinks, setBrokenLinks] = useState([]);
+  const [linkIssues, setLinkIssues] = useState([]);
   const [graph, setGraph] = useState({ nodes: [], edges: [] });
   const [selectedNode, setSelectedNode] = useState(null);
   const [jobSearch, setJobSearch] = useState("");
@@ -58,7 +60,8 @@ function App() {
   const slowPages = useMemo(() => pages.filter((page) => page.is_slow), [pages]);
   const topIssues = useMemo(
     () => [
-      { label: "Broken links", value: report.broken_links_count },
+      { label: "Link issues", value: report.link_issues_count },
+      { label: "True broken links", value: report.broken_links_count },
       { label: "Slow pages", value: report.slow_pages_count },
       { label: "Skipped by robots", value: report.skipped_by_robots_count },
       { label: "Timeouts", value: report.timeout_count },
@@ -82,7 +85,7 @@ function App() {
   async function loadJob(jobId) {
     if (!jobId) return;
     setError("");
-    const [jobData, reportData, brokenData, graphData] = await Promise.all([
+    const [jobData, reportData, linkIssueData, graphData] = await Promise.all([
       request(`/crawl/${jobId}`),
       request(`/crawl/${jobId}/report`),
       request(`/crawl/${jobId}/broken-links`),
@@ -90,7 +93,7 @@ function App() {
     ]);
     setJob(jobData);
     setReport(reportData);
-    setBrokenLinks(brokenData);
+    setLinkIssues(linkIssueData);
     setGraph(graphData);
     setSelectedNode(null);
     setJobSearch(jobId);
@@ -134,7 +137,7 @@ function App() {
         <div>
           <p className="eyebrow">Website Intelligence & Audit Platform</p>
           <h1>WebScope</h1>
-          <p className="hero-copy">Audit crawlability, broken links, SEO metadata, and response times from one focused dashboard.</p>
+          <p className="hero-copy">Audit crawlability, link issues, SEO metadata, and response times from one focused dashboard.</p>
         </div>
         <div className="score-card">
           <span>Health Score</span>
@@ -166,14 +169,14 @@ function App() {
       </section>
 
       <nav className="tabs">
-        {["overview", "pages", "broken links", "seo issues", "performance", "site graph"].map((tab) => (
+        {["overview", "pages", "link issues", "seo issues", "performance", "site graph"].map((tab) => (
           <button key={tab} className={activeTab === tab ? "active" : ""} onClick={() => setActiveTab(tab)}>{tab}</button>
         ))}
       </nav>
 
       {activeTab === "overview" && <Overview report={report} job={job} topIssues={topIssues} />}
       {activeTab === "pages" && <PagesTable pages={pages} title="Crawled Pages" />}
-      {activeTab === "broken links" && <BrokenLinksTable links={brokenLinks} />}
+      {activeTab === "link issues" && <LinkIssuesTable links={linkIssues} />}
       {activeTab === "seo issues" && <SeoIssuesTable pages={seoIssuePages} />}
       {activeTab === "performance" && <Performance report={report} pages={slowPages} />}
       {activeTab === "site graph" && (
@@ -187,7 +190,8 @@ function SummaryCards({ summary, report }) {
   return (
     <section className="cards">
       <Metric label="Pages crawled" value={summary?.crawled_pages ?? report.total_pages} />
-      <Metric label="Broken links" value={report.broken_links_count} tone="bad" />
+      <Metric label="Link issues" value={report.link_issues_count} tone="bad" />
+      <Metric label="True broken links" value={report.broken_links_count} tone="bad" />
       <Metric label="Slow pages" value={report.slow_pages_count} tone="warn" />
       <Metric label="Skipped by robots" value={report.skipped_by_robots_count} tone="warn" />
       <Metric label="Timeouts" value={report.timeout_count} tone="bad" />
@@ -209,7 +213,8 @@ function Overview({ report, job, topIssues }) {
         <div className="report-list">
           <ReportRow label="Total pages" value={report.total_pages} />
           <ReportRow label="Total links" value={report.total_links} />
-          <ReportRow label="Broken links" value={report.broken_links_count} />
+          <ReportRow label="Link issues" value={report.link_issues_count} />
+          <ReportRow label="True broken links" value={report.broken_links_count} />
           <ReportRow label="Skipped by robots" value={report.skipped_by_robots_count} />
           <ReportRow label="Timeouts" value={report.timeout_count} />
           <ReportRow label="Missing titles" value={report.missing_titles_count} />
@@ -220,7 +225,7 @@ function Overview({ report, job, topIssues }) {
       <div className="panel health-explain">
         <div className="section-header"><h2>Health Score</h2><strong>{report.health_score}%</strong></div>
         <p>
-          WebScope scores each crawl by subtracting broken links, slow pages, and missing SEO metadata
+          WebScope scores each crawl by subtracting link issues, slow pages, and missing SEO metadata
           from the ideal site health baseline.
         </p>
         <div className="issue-chips">
@@ -228,6 +233,14 @@ function Overview({ report, job, topIssues }) {
             <span className="chip good">No major issues found</span>
           ) : topIssues.map((issue) => (
             <span className="chip" key={issue.label}>{issue.label}: {issue.value}</span>
+          ))}
+        </div>
+      </div>
+      <div className="panel">
+        <div className="section-header"><h2>Link Issue Types</h2></div>
+        <div className="report-list">
+          {Object.entries(report.link_issues_by_type || {}).map(([issueType, count]) => (
+            <ReportRow key={issueType} label={formatIssueType(issueType)} value={count} />
           ))}
         </div>
       </div>
@@ -289,23 +302,34 @@ function PagesTable({ pages, title }) {
   );
 }
 
-function BrokenLinksTable({ links }) {
+function LinkIssuesTable({ links }) {
   return (
     <section className="panel">
-      <div className="section-header"><h2>Broken Links</h2><span className="muted">{links.length} issues</span></div>
-      <TableShell empty="No broken links found for the selected crawl." columns={["Broken URL", "Found on", "Status", "Reason", "Error"]}>
+      <div className="section-header"><h2>Link Issues</h2><span className="muted">{links.length} issues</span></div>
+      <TableShell empty="No link issues found for the selected crawl." columns={["URL", "Found on", "Status", "Issue Type", "Note"]}>
         {links.map((link) => (
           <tr key={`${link.job_id}-${link.url}`}>
             <td className="url-cell" title={link.url}>{link.url}</td>
             <td className="url-cell" title={link.source_url || ""}>{link.source_url || "Seed URL"}</td>
             <td>{link.status_code ?? "N/A"}</td>
-            <td>{(link.error_type || "http_error").replaceAll("_", " ")}</td>
-            <td>{link.error || "HTTP error"}</td>
+            <td>{formatIssueType(link.link_issue_type)}</td>
+            <td>{linkIssueNote(link)}</td>
           </tr>
         ))}
       </TableShell>
     </section>
   );
+}
+
+function formatIssueType(issueType) {
+  return (issueType || "unknown").replaceAll("_", " ");
+}
+
+function linkIssueNote(link) {
+  if (link.link_issue_type === "crawler_inaccessible") {
+    return "This URL may work in a browser but was inaccessible to the crawler due to request restrictions, cookies, authentication, or anti-bot rules.";
+  }
+  return link.error || formatIssueType(link.link_issue_type);
 }
 
 function SeoIssuesTable({ pages }) {
