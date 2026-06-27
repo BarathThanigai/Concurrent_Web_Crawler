@@ -10,10 +10,11 @@ export default function Navbar({ onLaunch }) {
         <a href="#features">Features</a>
         <a href="#how-it-works">How it works</a>
         <a href="#tech-stack">Tech stack</a>
+        <a href="#" aria-label="View WebScope on GitHub">GitHub</a>
         <button className="theme-toggle" onClick={toggleTheme}>
           {theme === "dark" ? "Light" : "Dark"} Mode
         </button>
-        <button className="primary" onClick={onLaunch}>Launch App</button>
+        <button className="primary nav-launch" onClick={onLaunch}>Launch App</button>
       </nav>
     </header>
   );

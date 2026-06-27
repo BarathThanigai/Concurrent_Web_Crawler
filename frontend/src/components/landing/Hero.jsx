@@ -10,7 +10,7 @@ export default function Hero({ onLaunch }) {
         </p>
         <div className="landing-actions">
           <button className="primary hero-primary" onClick={onLaunch}>Start Free Audit</button>
-          <a className="hero-secondary" href="https://github.com/BarathThanigai/Concurrent_Web_Crawler">View GitHub</a>
+          <a className="hero-secondary" href="https://github.com/BarathThanigai/Concurrent_Web_Crawler" target="_blank" rel="noopener noreferrer">View GitHub</a>
         </div>
       </div>
       <div className="hero-preview-card" aria-label="WebScope dashboard preview">
