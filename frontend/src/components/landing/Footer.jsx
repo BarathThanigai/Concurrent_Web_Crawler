@@ -6,7 +6,7 @@ export default function Footer({ onLaunch }) {
         <p>Website intelligence for crawl health, SEO checks, link issues, performance, and reporting.</p>
       </div>
       <div className="footer-links" aria-label="Footer links">
-        <a href="#">GitHub</a>
+        <a href="https://github.com/BarathThanigai/Concurrent_Web_Crawler" target="_blank" rel="noopener noreferrer">GitHub</a>
         <a href="#">Roadmap</a>
         <button onClick={onLaunch}>Launch App</button>
       </div>
