@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import ReactFlow, { Background, Controls, MiniMap } from "reactflow";
 import "reactflow/dist/style.css";
 import LandingPage from "./components/landing/LandingPage";
-import { ThemeProvider } from "./theme/ThemeContext";
+import { ThemeProvider, useTheme } from "./theme/ThemeContext";
 import "./styles.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
@@ -33,7 +33,8 @@ function formatMs(value) {
   return `${Number(value || 0).toFixed(1)} ms`;
 }
 
-function DashboardApp() {
+function DashboardApp({ onHome }) {
+  const { theme, toggleTheme } = useTheme();
   const [seedUrl, setSeedUrl] = useState("https://books.toscrape.com");
   const [maxDepth, setMaxDepth] = useState(1);
   const [maxConcurrency, setMaxConcurrency] = useState(8);
@@ -135,6 +136,17 @@ function DashboardApp() {
 
   return (
     <main className="shell">
+      <header className="dashboard-topbar">
+        <button className="dashboard-brand" onClick={onHome}>WebScope</button>
+        <nav className="dashboard-nav" aria-label="Dashboard navigation">
+          <button onClick={onHome}>Back to Home</button>
+          <a href="#" aria-label="View WebScope on GitHub">GitHub</a>
+          <button className="theme-toggle" onClick={toggleTheme}>
+            {theme === "dark" ? "Light" : "Dark"} Mode
+          </button>
+        </nav>
+      </header>
+
       <header className="hero">
         <div>
           <p className="eyebrow">Website Intelligence & Audit Platform</p>
@@ -473,7 +485,7 @@ function App() {
   const [showDashboard, setShowDashboard] = useState(false);
 
   if (showDashboard) {
-    return <DashboardApp />;
+    return <DashboardApp onHome={() => setShowDashboard(false)} />;
   }
 
   return <LandingPage onLaunch={() => setShowDashboard(true)} />;
