@@ -20,6 +20,196 @@ button {
 button:hover { border-color: #667899; }
 button:disabled { cursor: not-allowed; opacity: 0.65; }
 
+.landing-page {
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 24px 0 40px;
+}
+
+.landing-navbar {
+  align-items: center;
+  border-bottom: 1px solid #dde5f1;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  padding: 14px 0;
+}
+
+.landing-brand {
+  color: #172033;
+  font-size: 1.1rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.landing-links {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.landing-links a,
+.landing-actions a {
+  color: #365f8c;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.landing-hero {
+  align-items: center;
+  display: grid;
+  gap: 28px;
+  grid-template-columns: minmax(0, 1.3fr) minmax(260px, 0.7fr);
+  padding: 56px 0 32px;
+}
+
+.landing-hero h1 {
+  font-size: clamp(2.3rem, 6vw, 4.5rem);
+  line-height: 1.05;
+  max-width: 780px;
+}
+
+.landing-hero p,
+.landing-copy,
+.dashboard-preview p {
+  color: #526174;
+  line-height: 1.65;
+}
+
+.landing-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.hero-panel,
+.landing-card,
+.landing-stat,
+.preview-box {
+  background: #ffffff;
+  border: 1px solid #dde5f1;
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.hero-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.hero-panel span {
+  color: #64748b;
+  font-weight: 700;
+}
+
+.hero-panel strong {
+  font-size: 2rem;
+}
+
+.landing-section {
+  padding: 34px 0;
+}
+
+.landing-section-header {
+  margin-bottom: 18px;
+}
+
+.landing-section-header h2 {
+  font-size: 1.7rem;
+}
+
+.landing-stats,
+.landing-grid,
+.landing-steps {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.landing-stat strong {
+  display: block;
+  font-size: 1.8rem;
+}
+
+.landing-stat span,
+.landing-card p {
+  color: #64748b;
+}
+
+.landing-card h3 {
+  margin: 0 0 8px;
+}
+
+.step-number {
+  color: #175cd3;
+  font-weight: 800;
+}
+
+.dashboard-preview {
+  align-items: center;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 0.9fr) minmax(280px, 1.1fr);
+}
+
+.preview-box {
+  display: grid;
+  gap: 12px;
+  min-height: 220px;
+}
+
+.preview-row,
+.preview-grid span {
+  background: #e6edf7;
+  border-radius: 8px;
+  min-height: 32px;
+}
+
+.preview-row.short {
+  width: 65%;
+}
+
+.preview-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.tech-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tech-list span {
+  background: #ffffff;
+  border: 1px solid #dde5f1;
+  border-radius: 999px;
+  font-weight: 700;
+  padding: 8px 12px;
+}
+
+.faq-list {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.landing-footer {
+  align-items: center;
+  border-top: 1px solid #dde5f1;
+  display: flex;
+  justify-content: space-between;
+  padding: 20px 0 0;
+}
+
+.landing-footer span {
+  font-weight: 800;
+}
+
 .shell {
   width: min(1200px, calc(100% - 32px));
   margin: 0 auto;
@@ -232,12 +422,17 @@ th { color: #526174; font-size: 0.8rem; text-transform: uppercase; }
 
 @media (max-width: 1000px) {
   .hero, .crawl-form, .toolbar, .grid-two, .overview-grid, .graph-layout { grid-template-columns: 1fr; }
+  .landing-hero, .dashboard-preview { grid-template-columns: 1fr; }
+  .landing-stats, .landing-grid, .landing-steps, .faq-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .graph-canvas { height: 520px; }
 }
 
 @media (max-width: 560px) {
   .shell { width: min(100% - 20px, 1200px); padding: 18px 0; }
+  .landing-page { width: min(100% - 20px, 1120px); }
+  .landing-navbar, .landing-footer { align-items: flex-start; flex-direction: column; }
+  .landing-stats, .landing-grid, .landing-steps, .faq-list, .preview-grid { grid-template-columns: 1fr; }
   .cards, .cards.compact { grid-template-columns: 1fr; }
   .tabs button { flex: 1; }
 }

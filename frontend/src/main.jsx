@@ -2,6 +2,7 @@
 import { createRoot } from "react-dom/client";
 import ReactFlow, { Background, Controls, MiniMap } from "reactflow";
 import "reactflow/dist/style.css";
+import LandingPage from "./components/landing/LandingPage";
 import "./styles.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
@@ -31,7 +32,7 @@ function formatMs(value) {
   return `${Number(value || 0).toFixed(1)} ms`;
 }
 
-function App() {
+function DashboardApp() {
   const [seedUrl, setSeedUrl] = useState("https://books.toscrape.com");
   const [maxDepth, setMaxDepth] = useState(1);
   const [maxConcurrency, setMaxConcurrency] = useState(8);
@@ -465,6 +466,16 @@ function StatusPill({ page }) {
   if (page.is_slow) return <span className="pill warn">Slow</span>;
   if (page.missing_title || page.missing_description || page.missing_h1) return <span className="pill warn">SEO issue</span>;
   return <span className="pill success">Healthy</span>;
+}
+
+function App() {
+  const [showDashboard, setShowDashboard] = useState(false);
+
+  if (showDashboard) {
+    return <DashboardApp />;
+  }
+
+  return <LandingPage onLaunch={() => setShowDashboard(true)} />;
 }
 
 createRoot(document.getElementById("root")).render(<App />);
