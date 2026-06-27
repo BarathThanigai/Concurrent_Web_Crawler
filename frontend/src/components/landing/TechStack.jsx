@@ -1,4 +1,14 @@
-const stack = ["FastAPI", "SQLite", "aiohttp", "BeautifulSoup", "React", "Vite", "React Flow", "Docker"];
+const stack = [
+  { name: "React", role: "Frontend UI" },
+  { name: "Vite", role: "Fast builds" },
+  { name: "FastAPI", role: "Backend API" },
+  { name: "Python", role: "Crawler logic" },
+  { name: "asyncio", role: "Concurrency" },
+  { name: "aiohttp", role: "Async requests" },
+  { name: "BeautifulSoup", role: "HTML parsing" },
+  { name: "SQLite", role: "Local storage" },
+  { name: "React Flow", role: "Site graph" },
+];
 
 export default function TechStack() {
   return (
@@ -8,7 +18,12 @@ export default function TechStack() {
         <h2>Modern full-stack project foundation</h2>
       </div>
       <div className="tech-list">
-        {stack.map((item) => <span key={item}>{item}</span>)}
+        {stack.map((item) => (
+          <article className="tech-card" key={item.name}>
+            <span>{item.name}</span>
+            <small>{item.role}</small>
+          </article>
+        ))}
       </div>
     </section>
   );

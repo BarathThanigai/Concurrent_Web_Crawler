@@ -694,34 +694,127 @@ button:disabled { cursor: not-allowed; opacity: 0.65; }
 }
 
 .tech-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.tech-list span {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  font-weight: 700;
-  padding: 8px 12px;
-}
-
-.faq-list {
   display: grid;
   gap: 14px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.landing-footer {
-  align-items: center;
-  border-top: 1px solid var(--border);
-  display: flex;
-  justify-content: space-between;
-  padding: 20px 0 0;
+.tech-card {
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--surface-elevated) 94%, var(--accent) 6%), var(--surface));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  min-height: 112px;
+  padding: 18px;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
 
-.landing-footer span {
+.tech-card:hover,
+.faq-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+  box-shadow: 0 18px 38px color-mix(in srgb, var(--text-primary) 12%, transparent);
+  transform: translateY(-3px);
+}
+
+.tech-card span {
+  color: var(--text-primary);
+  display: block;
+  font-size: 1.08rem;
+  font-weight: 900;
+  margin-bottom: 8px;
+}
+
+.tech-card small {
+  color: var(--text-secondary);
+  font-weight: 800;
+}
+
+.faq-list {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.faq-card {
+  min-height: 176px;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.faq-card h3 {
+  color: var(--text-primary);
+  font-size: 1.04rem;
+  line-height: 1.35;
+}
+
+.faq-card p {
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+.landing-footer {
+  align-items: start;
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 22px;
+  grid-template-columns: minmax(0, 1.25fr) auto;
+  margin-top: 28px;
+  padding: 28px 0 0;
+}
+
+.footer-brand span {
+  color: var(--text-primary);
+  display: block;
+  font-size: 1.12rem;
+  font-weight: 800;
+}
+
+.footer-brand p {
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin: 8px 0 0;
+  max-width: 520px;
+}
+
+.footer-links {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.footer-links a {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-weight: 800;
+  padding: 10px 12px;
+  text-decoration: none;
+  transition: border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.footer-links a:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.footer-meta {
+  align-items: center;
+  border-top: 1px solid var(--border);
+  color: var(--text-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  grid-column: 1 / -1;
+  justify-content: space-between;
+  padding-top: 18px;
+}
+
+.footer-meta span,
+.footer-meta small {
+  color: var(--text-secondary);
   font-weight: 800;
 }
 
@@ -971,6 +1064,9 @@ th { color: #526174; font-size: 0.8rem; text-transform: uppercase; }
   .dashboard-preview-copy { max-width: 680px; }
   .why-copy { position: static; }
   .landing-stats, .landing-grid, .landing-steps, .faq-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tech-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .landing-footer { grid-template-columns: 1fr; }
+  .footer-links { justify-content: flex-start; }
   .mock-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .graph-canvas { height: 520px; }
@@ -992,7 +1088,9 @@ th { color: #526174; font-size: 0.8rem; text-transform: uppercase; }
   .dashboard-mock { border-radius: 18px; padding: 16px; }
   .mock-topbar, .mock-content-grid, .mock-summary, .why-grid { grid-template-columns: 1fr; }
   .mock-status { justify-self: start; }
-  .landing-stats, .landing-grid, .landing-steps, .faq-list, .preview-grid { grid-template-columns: 1fr; }
+  .landing-stats, .landing-grid, .landing-steps, .faq-list, .preview-grid, .tech-list { grid-template-columns: 1fr; }
+  .footer-links a, .landing-footer button { flex: 1 1 auto; justify-content: center; text-align: center; }
+  .footer-meta { align-items: flex-start; flex-direction: column; }
   .cards, .cards.compact { grid-template-columns: 1fr; }
   .tabs button { flex: 1; }
 }
